@@ -2,14 +2,16 @@ BUILDDIR	?= /tmp/ssmbuild
 VERSION		?=
 RELEASE		?= 2
 
+SOURCE_COMMIT = fd77686af847cb44a9966b7eacce32dc9668d96e
+
 .PHONY: all
 all:
 
 ifeq (0, $(shell hash dpkg 2>/dev/null; echo $$?))
-ARCH    := $(shell dpkg --print-architecture)
+ARCH := $(shell dpkg --print-architecture)
 all: sdeb deb
 else
-ARCH    := $(shell rpm --eval "%{_arch}")
+ARCH := $(shell rpm --eval "%{_arch}")
 all: srpm rpm
 endif
 
@@ -28,11 +30,11 @@ $(SRPM_FILE):
 	cp percona-toolkit.spec $(BUILDDIR)/rpmbuild/SPECS/percona-toolkit.spec
 	sed -i -E 's/%\{\??_version\}/$(VERSION)/g' $(BUILDDIR)/rpmbuild/SPECS/percona-toolkit.spec
 	sed -i -E 's/%\{\??_release\}/$(RELEASE)/g' $(BUILDDIR)/rpmbuild/SPECS/percona-toolkit.spec
+	sed -i -E 's/%\{\??_commit\}/$(SOURCE_COMMIT)/g' $(BUILDDIR)/rpmbuild/SPECS/percona-toolkit.spec
 	spectool -C $(BUILDDIR)/rpmbuild/SOURCES -g $(BUILDDIR)/rpmbuild/SPECS/percona-toolkit.spec
-	cp 0001-Fix-transparent-huge-pages-status-check.patch $(BUILDDIR)/rpmbuild/SOURCES/
 
-	tar -C $(BUILDDIR)/rpmbuild/SOURCES/ -zxf $(BUILDDIR)/rpmbuild/SOURCES/percona-toolkit-v$(VERSION).tar.gz
-	cd $(BUILDDIR)/rpmbuild/SOURCES/percona-toolkit-$(VERSION) && go mod vendor && tar -czf $(BUILDDIR)/rpmbuild/SOURCES/percona-toolkit-v$(VERSION).tar.gz -C $(BUILDDIR)/rpmbuild/SOURCES percona-toolkit-$(VERSION)
+	tar -C $(BUILDDIR)/rpmbuild/SOURCES/ -zxf $(BUILDDIR)/rpmbuild/SOURCES/percona-toolkit-$(SOURCE_COMMIT).tar.gz
+	cd $(BUILDDIR)/rpmbuild/SOURCES/percona-toolkit-$(SOURCE_COMMIT) && GOTOOLCHAIN=auto go mod vendor && tar -czf $(BUILDDIR)/rpmbuild/SOURCES/percona-toolkit-$(SOURCE_COMMIT).tar.gz -C $(BUILDDIR)/rpmbuild/SOURCES percona-toolkit-$(SOURCE_COMMIT)
 
 	rpmbuild -bs --define "debug_package %{nil}" --define "_topdir $(BUILDDIR)/rpmbuild" $(BUILDDIR)/rpmbuild/SPECS/percona-toolkit.spec
 	mv $(BUILDDIR)/rpmbuild/SRPMS/$(shell basename $(SRPM_FILE)) $(SRPM_FILE)
@@ -51,22 +53,24 @@ sdeb: $(SDEB_FILES)
 $(SDEB_FILES):
 	mkdir -vp $(BUILDDIR)/debbuild/SDEB/percona-toolkit-$(VERSION)-$(RELEASE)
 	cp -r debian $(BUILDDIR)/debbuild/SDEB/percona-toolkit-$(VERSION)-$(RELEASE)/debian
-	cp 0001-Fix-transparent-huge-pages-status-check.patch $(BUILDDIR)/debbuild/SDEB/percona-toolkit-$(VERSION)-$(RELEASE)/
-	curl -sL -o $(BUILDDIR)/debbuild/SDEB/percona-toolkit-$(VERSION)-$(RELEASE)/percona-toolkit.tar.gz https://github.com/percona/percona-toolkit/archive/v$(VERSION)/percona-toolkit-v$(VERSION).tar.gz
+	curl -sL -o $(BUILDDIR)/debbuild/SDEB/percona-toolkit-$(VERSION)-$(RELEASE)/percona-toolkit.tar.gz https://github.com/shatteredsilicon/percona-toolkit/archive/$(SOURCE_COMMIT)/percona-toolkit-$(SOURCE_COMMIT).tar.gz
 	cd $(BUILDDIR)/debbuild/SDEB/percona-toolkit-$(VERSION)-$(RELEASE) && \
 		tar -zxf percona-toolkit.tar.gz && \
-		cd percona-toolkit-$(VERSION) && \
-			go mod vendor && \
+		cd percona-toolkit-$(SOURCE_COMMIT) && \
+			GOTOOLCHAIN=auto go mod vendor && \
 			cd .. && \
-		tar -czf percona-toolkit.tar.gz percona-toolkit-$(VERSION)
+		tar -czf percona-toolkit.tar.gz percona-toolkit-$(SOURCE_COMMIT)
 
 	cd $(BUILDDIR)/debbuild/SDEB/percona-toolkit-$(VERSION)-$(RELEASE)/; \
 		sed -i "s/%{_version}/$(VERSION)/g"  debian/control; \
 		sed -i "s/%{_release}/$(RELEASE)/g"  debian/control; \
+		sed -i "s/%{_commit}/$(SOURCE_COMMIT)/g"  debian/control; \
 		sed -i "s/%{_version}/$(VERSION)/g"  debian/rules; \
 		sed -i "s/%{_release}/$(RELEASE)/g"  debian/rules; \
+		sed -i "s/%{_commit}/$(SOURCE_COMMIT)/g"  debian/rules; \
 		sed -i "s/%{_version}/$(VERSION)/g"  debian/changelog; \
 		sed -i "s/%{_release}/$(RELEASE)/g"  debian/changelog; \
+		sed -i "s/%{_commit}/$(SOURCE_COMMIT)/g"  debian/changelog; \
 		dpkg-buildpackage -S -us
 
 	for sdeb_file in $(SDEB_FILES); do \
