@@ -9,21 +9,23 @@ export DH_VERBOSE=1
 SHELL=/bin/bash
 TMP=$(CURDIR)/debian/tmp
 
-export PATH:=/usr/lib/go-1.19/bin:$(PATH)
+export PATH:=/usr/lib/go-1.25/bin:$(PATH)
 export GOPATH=$(CURDIR)/go
-export GOROOT=/usr/lib/go-1.19
-export CGO_ENABLED=0
+export GOROOT=/usr/lib/go-1.25
+export GO111MODULE=off
 
 override_dh_auto_build:
 	mkdir -p $(GOPATH)/bin
 
 	tar -zxf percona-toolkit*.tar.gz
-	patch -p1 -d percona-toolkit-%{_version} < 0001-Fix-transparent-huge-pages-status-check.patch
 
-	cd percona-toolkit-%{_version} && \
-		go install -ldflags="-s -w" -mod=vendor ./src/go/...
+	mkdir -p $(GOPATH)/src/github.com/percona
+	ln -s $(CURDIR)/percona-toolkit-%{_commit} $(GOPATH)/src/github.com/percona/percona-toolkit
 
-	cp percona-toolkit-%{_version}/bin/* $(GOPATH)/bin/
+	cd $(GOPATH)/src/github.com/percona/percona-toolkit && \
+		go install -ldflags="-s -w" ./src/go/pt-*
+
+	cp $(GOPATH)/src/github.com/percona/percona-toolkit/bin/* $(GOPATH)/bin/
 
 override_dh_auto_install:
 	@echo "RULES.$@"
