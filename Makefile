@@ -44,7 +44,7 @@ rpm: $(RPM_FILE)
 
 $(RPM_FILE): $(SRPM_FILE)
 	mkdir -vp $(BUILDDIR)/mock $(shell dirname $(RPM_FILE))
-	mock -r ssm-9-$(ARCH) --resultdir $(BUILDDIR)/mock --rebuild $(SRPM_FILE)
+	mock -r ssm-8-$(ARCH) --resultdir $(BUILDDIR)/mock --rebuild $(SRPM_FILE)
 	mv $(BUILDDIR)/mock/$(shell basename $(RPM_FILE)) $(RPM_FILE)
 
 .PHONY: sdeb
