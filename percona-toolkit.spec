@@ -24,7 +24,7 @@ Requires: perl(IO::Socket::SSL)
 Requires: perl(Digest::MD5)
 Requires: perl(Term::ReadKey)
 
-Recommends: (perl(DBD::MariaDB) if MariaDB-common else perl(DBD::mysql))
+Recommends: (perl(DBD::MariaDB) if (MariaDB-common and perl(DBD::MariaDB)))
 
 %description
 Percona Toolkit (Shattered Silicon Build)
